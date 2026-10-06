@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Radarbogen -->
+    <path
+        android:pathData="M32,74 A30,30 0 0 1 76,34"
+        android:strokeColor="#5FD3B8"
+        android:strokeWidth="3"
+        android:fillColor="#00000000" />
+    <!-- Steigende Linie -->
+    <path
+        android:pathData="M34,70 L48,56 L58,62 L74,42"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M74,42 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"
+        android:fillColor="#5FD3B8" />
+</vector>
