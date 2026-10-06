@@ -53,7 +53,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WatchlistScreen(onOpen: (String) -> Unit, onSettings: () -> Unit) {
+fun WatchlistScreen(onOpen: (String) -> Unit, onSettings: () -> Unit, bottomBar: @Composable () -> Unit) {
     val list by Repo.items.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -64,7 +64,7 @@ fun WatchlistScreen(onOpen: (String) -> Unit, onSettings: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Aktienradar") },
+                title = { Text("Watchlist") },
                 actions = {
                     IconButton(enabled = !busy && list.isNotEmpty(), onClick = {
                         scope.launch {
@@ -87,6 +87,7 @@ fun WatchlistScreen(onOpen: (String) -> Unit, onSettings: () -> Unit) {
                 Icon(Icons.Default.Add, contentDescription = "Aktie hinzufügen")
             }
         },
+        bottomBar = bottomBar,
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
@@ -94,7 +95,7 @@ fun WatchlistScreen(onOpen: (String) -> Unit, onSettings: () -> Unit) {
             if (list.isEmpty()) {
                 Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Noch keine Aktien in der Watchlist.", style = MaterialTheme.typography.titleMedium)
-                    Text("Tippe auf +, um ein US-Ticker-Symbol hinzuzufügen, z. B. MSFT, COST oder CRWD.")
+                    Text("Wähle im Radar interessante Kandidaten aus oder tippe auf +, um ein US-Ticker-Symbol direkt hinzuzufügen.")
                     Text(DISCLAIMER, style = MaterialTheme.typography.bodySmall)
                 }
             }

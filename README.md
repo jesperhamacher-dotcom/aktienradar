@@ -1,7 +1,12 @@
 # Aktienradar – Android-App (MVP)
 
-Watchlist für US-Aktien mit Trendanalyse aus SEC-EDGAR-Daten, Potential-Score mit Begründung,
+**Radar:** durchsucht alle bei der SEC meldenden Unternehmen (mehrere tausend) und zeigt potenzielle Aktien,
+bei denen sich Umsatzwachstum und Margen gerade verbessern. Wöchentlicher Hintergrund-Scan mit Benachrichtigung bei neuen Kandidaten.
+
+**Watchlist:** Trendanalyse über bis zu 16 Quartale, Potential-Score mit Begründung,
 Überwachung deiner Investment-These und Benachrichtigungen bei Veränderungen.
+
+Download der fertigen APK: Releases → „aktuell“ → Assets → Aktienradar.apk
 
 ## APK bauen – Weg A: GitHub (ohne PC-Software, geht auch vom Handy)
 

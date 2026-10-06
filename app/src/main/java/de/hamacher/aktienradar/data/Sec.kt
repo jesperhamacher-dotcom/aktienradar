@@ -1,6 +1,7 @@
 package de.hamacher.aktienradar.data
 
 import android.content.Context
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
@@ -22,7 +23,8 @@ object SecClient {
     private const val FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK%010d.json"
     private const val TICKER_CACHE_MAX_AGE_MS = 7L * 24 * 60 * 60 * 1000
 
-    private fun get(url: String, userAgent: String): String {
+    /** Lädt eine URL; liefert null bei 404 (nicht vorhanden). */
+    private fun getOrNull(url: String, userAgent: String): String? {
         val conn = URL(url).openConnection() as HttpURLConnection
         conn.setRequestProperty("User-Agent", userAgent)
         conn.setRequestProperty("Accept", "application/json")
@@ -31,7 +33,7 @@ object SecClient {
         try {
             val code = conn.responseCode
             when {
-                code == 404 -> throw SecException("Keine SEC-Finanzdaten für dieses Unternehmen gefunden.")
+                code == 404 -> return null
                 code == 403 || code == 429 -> throw SecException(
                     "Die SEC hat die Anfrage abgelehnt (HTTP $code). Bitte in den Einstellungen eine echte Kontakt-E-Mail eintragen und später erneut versuchen."
                 )
@@ -41,6 +43,36 @@ object SecClient {
         } finally {
             conn.disconnect()
         }
+    }
+
+    private fun get(url: String, userAgent: String): String =
+        getOrNull(url, userAgent) ?: throw SecException("Keine SEC-Finanzdaten für dieses Unternehmen gefunden.")
+
+    /** Alle bei der SEC gelisteten Ticker, nach CIK (erster Eintrag = Hauptaktie). Eine Woche zwischengespeichert. */
+    fun tickerMap(context: Context, userAgent: String): Map<Int, TickerInfo> {
+        val cache = File(context.filesDir, "company_tickers.json")
+        val fresh = cache.exists() && System.currentTimeMillis() - cache.lastModified() < TICKER_CACHE_MAX_AGE_MS
+        val text = if (fresh) cache.readText() else {
+            get(TICKERS_URL, userAgent).also { cache.writeText(it) }
+        }
+        val root = JSONObject(text)
+        val result = LinkedHashMap<Int, TickerInfo>()
+        val keys = root.keys()
+        while (keys.hasNext()) {
+            val o = root.getJSONObject(keys.next())
+            val cik = o.getInt("cik_str")
+            if (!result.containsKey(cik)) {
+                result[cik] = TickerInfo(o.getString("ticker").uppercase(), cik, o.getString("title"))
+            }
+        }
+        return result
+    }
+
+    /** Ein Wert pro Unternehmen für ein Kalenderquartal, z. B. period = "CY2026Q2". Null, wenn es den Frame nicht gibt. */
+    fun frame(userAgent: String, concept: String, unit: String, period: String): JSONArray? {
+        val text = getOrNull("https://data.sec.gov/api/xbrl/frames/us-gaap/$concept/$unit/$period.json", userAgent)
+            ?: return null
+        return JSONObject(text).optJSONArray("data")
     }
 
     /** Sucht ein US-Ticker-Symbol in der offiziellen SEC-Liste (wird eine Woche zwischengespeichert). */

@@ -11,6 +11,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import de.hamacher.aktienradar.data.Level
 import de.hamacher.aktienradar.data.Repo
+import de.hamacher.aktienradar.data.pct
 import kotlinx.coroutines.delay
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
@@ -47,7 +48,27 @@ class CheckWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             }
             delay(300) // SEC-Limit schonen
         }
+        scanIfDue()
         return Result.success()
+    }
+
+    /** Markt-Scan etwa einmal pro Woche; meldet neue starke Kandidaten. */
+    private suspend fun scanIfDue() {
+        val last = Repo.scan.value?.timestamp ?: 0L
+        if (System.currentTimeMillis() - last < 6L * 24 * 60 * 60 * 1000) return
+        val (result, previous) = try {
+            Repo.runScan(applicationContext) ?: return
+        } catch (e: Exception) {
+            return
+        }
+        val fresh = result.candidates.filter { it.score >= 75 && it.ticker !in previous }
+        if (fresh.isEmpty()) return
+        Notifier.notify(
+            applicationContext, 4711,
+            "🚨 ${fresh.size} neue Kandidaten im Radar",
+            fresh.take(6).map { "${it.ticker} · Score ${it.score} · Umsatz ${pct(it.growthNow)}" },
+            ticker = "",
+        )
     }
 
     companion object {

@@ -30,6 +30,14 @@ object Repo {
     private val _items = MutableStateFlow<List<WatchItem>>(emptyList())
     val items: StateFlow<List<WatchItem>> = _items.asStateFlow()
 
+    private val _scan = MutableStateFlow<ScanResult?>(null)
+    val scan: StateFlow<ScanResult?> = _scan.asStateFlow()
+
+    /** Fortschrittstext während ein Markt-Scan läuft, sonst null. */
+    private val _scanStatus = MutableStateFlow<String?>(null)
+    val scanStatus: StateFlow<String?> = _scanStatus.asStateFlow()
+    private val scanMutex = Mutex()
+
     @Synchronized
     fun init(context: Context) {
         if (::prefs.isInitialized) return
@@ -39,6 +47,29 @@ object Repo {
             (0 until arr.length()).map { WatchItem.fromJson(arr.getJSONObject(it)) }
         } catch (_: Exception) {
             emptyList()
+        }
+        _scan.value = Scanner.load(context.applicationContext)
+    }
+
+    /**
+     * Durchsucht den gesamten Markt. Liefert das Ergebnis und die bisherigen Kandidaten-Ticker
+     * (für "neu"-Erkennung) oder wirft eine Exception mit verständlicher Meldung.
+     */
+    suspend fun runScan(context: Context): Pair<ScanResult, Set<String>>? {
+        if (scanMutex.isLocked) return null
+        return scanMutex.withLock {
+            val ua = userAgent()
+            val previous = _scan.value?.candidates?.filter { it.score >= 75 }?.map { it.ticker }?.toSet() ?: emptySet()
+            try {
+                _scanStatus.value = "Starte Scan …"
+                val result = withContext(Dispatchers.IO) {
+                    Scanner.run(context.applicationContext, ua) { _scanStatus.value = it }
+                }
+                _scan.value = result
+                Pair(result, previous)
+            } finally {
+                _scanStatus.value = null
+            }
         }
     }
 
